@@ -1,0 +1,40 @@
+name: Daily Stock Analyzer
+
+on:
+  # 매일 오후 4시(한국시간 기준)에 실행
+  # GitHub 서버는 UTC(영국시간) 기준이므로 한국시간(KST) - 9시간을 설정해야 합니다.
+  # 16시 - 9시간 = 07시 (월~금요일만 실행되도록 1-5 설정)
+  schedule:
+    - cron: '0 7 * * 1-5'
+  
+  # 수동으로 원할 때 언제든 버튼을 눌러 실행할 수 있게 해줌
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 저장소 코드 가져오기
+      uses: actions/checkout@v3
+
+    - name: 파이썬 환경 설정
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: 필요한 라이브러리 설치
+      run: |
+        pip install -r requirements.txt
+
+    - name: 파이썬 스크래핑 스크립트 실행
+      run: |
+        python scraper.py
+
+    - name: 생성된 result.json을 GitHub에 자동 커밋 & 푸시
+      run: |
+        git config --global user.name 'github-actions[bot]'
+        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+        git add result.json
+        # 변경사항이 있을 때만 커밋하도록 예외 처리
+        git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update stock data" && git push)
